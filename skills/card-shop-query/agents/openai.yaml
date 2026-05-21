@@ -1,0 +1,4 @@
+interface:
+  display_name: "Card Shop Query"
+  short_description: "Query public card-shop listings from a URL pool"
+  default_prompt: "Query the configured card-shop source pool, summarize current public listings, and report source failures separately."

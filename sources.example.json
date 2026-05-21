@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "shops": [
+    "https://pay.example.invalid/shop/demo",
+    "https://store.example.invalid/cat/12"
+  ]
+}
