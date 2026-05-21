@@ -15,6 +15,7 @@ function parseArgs(argv) {
     keyword: "",
     format: "markdown",
     includeSoldOut: false,
+    onlyInStock: false,
     descriptionLimit: DEFAULT_DESCRIPTION_LIMIT,
   };
 
@@ -31,6 +32,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === "--include-sold-out") {
       options.includeSoldOut = true;
+    } else if (arg === "--only-in-stock") {
+      options.onlyInStock = true;
     } else if (arg === "--description-limit") {
       options.descriptionLimit = Number(argv[index + 1] ?? DEFAULT_DESCRIPTION_LIMIT);
       index += 1;
@@ -44,6 +47,10 @@ function parseArgs(argv) {
 
   if (!["markdown", "json"].includes(options.format)) {
     throw new Error(`Unsupported format: ${options.format}`);
+  }
+
+  if (options.includeSoldOut && options.onlyInStock) {
+    throw new Error("--include-sold-out and --only-in-stock cannot be used together");
   }
 
   if (!Number.isFinite(options.descriptionLimit) || options.descriptionLimit < 40) {
@@ -61,6 +68,7 @@ Options:
   --keyword <text>              Filter against name, description, shop, and source URL
   --format <markdown|json>      Output format, default markdown
   --include-sold-out            Include products explicitly marked sold out
+  --only-in-stock               Only include products explicitly marked in stock
   --description-limit <number>  Description summary length, default ${DEFAULT_DESCRIPTION_LIMIT}
   --help                        Show this help
 `);
@@ -207,11 +215,25 @@ function parseJingShopSource(sourceUrl) {
 function jingStock(item) {
   const count = Number(item.extend?.stock_count);
   const exactCountVisible = Number(item.extend?.show_stock_type) === 0;
+  if (Number.isFinite(count) && count <= 0) {
+    return {
+      stock: 0,
+      stockState: "sold_out",
+      stockLabel: "缺货",
+    };
+  }
   if (exactCountVisible && Number.isFinite(count)) {
     return {
       stock: count,
       stockState: count > 0 ? "in_stock" : "sold_out",
       stockLabel: String(count),
+    };
+  }
+  if (Number.isFinite(count) && count > 0) {
+    return {
+      stock: count,
+      stockState: "in_stock",
+      stockLabel: "库存充足",
     };
   }
   return { stock: null, stockState: "unknown", stockLabel: "unknown" };
@@ -453,7 +475,12 @@ async function main() {
 
   const listings = sources
     .flatMap((source) => source.listings)
-    .filter((listing) => options.includeSoldOut || listing.stockState !== "sold_out")
+    .filter((listing) => {
+      if (options.onlyInStock) {
+        return listing.stockState === "in_stock";
+      }
+      return options.includeSoldOut || listing.stockState !== "sold_out";
+    })
     .filter((listing) => matchesKeyword(listing, options.keyword))
     .sort(sortListings)
     .map(({ searchText, ...listing }) => listing);
@@ -464,6 +491,7 @@ async function main() {
     sourcesChecked: sourcePool.shops.length,
     keyword: options.keyword,
     includeSoldOut: options.includeSoldOut,
+    onlyInStock: options.onlyInStock,
     listings,
     sources,
   };

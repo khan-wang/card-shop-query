@@ -66,6 +66,12 @@ node .\skills\card-shop-query\scripts\query-card-shops.mjs --keyword codex
 node .\skills\card-shop-query\scripts\query-card-shops.mjs --include-sold-out
 ```
 
+只列出明确有货商品，适合查“当前最便宜且可买”的结果：
+
+```powershell
+node .\skills\card-shop-query\scripts\query-card-shops.mjs --only-in-stock
+```
+
 输出 JSON：
 
 ```powershell
@@ -103,5 +109,6 @@ node .\skills\card-shop-query\scripts\query-card-shops.mjs --sources D:\data\sho
 
 - 价格和库存可能在查询后变化
 - 描述来自卖家公开文案，购买前仍需自己复核
+- `缺货` 或零库存表示当前不可用；隐藏库存但公开接口显示正库存时会显示为 `库存充足`
 - 各平台库存字段并不统一，`unknown` 表示页面没有暴露可判定库存
 - 失败、维护中和不支持来源应保留在结果中，不应静默丢弃
